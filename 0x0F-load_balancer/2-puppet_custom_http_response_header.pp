@@ -1,26 +1,16 @@
-Employ Puppet for the automation of generating a customized HTTP header response:
-# Ensure that the Nginx package is installed
-package { 'nginx':
-  ensure => 'installed',
-}
+# Installs a Nginx server with custom HTTP header
 
-# This assumes that hostname fact not already defined
-# If it's defined, you can remove custom fact declaration
-facter::add('hostname_fact') {
-  setcode => 'hostname',
+exec {'update':
+  command => '/usr/bin/apt-get update',
 }
-
-# Configure Nginx with the custom HTTP header
-file_line { 'customize_http_header':
+-> package {'nginx':
+  ensure => 'present',
+}
+-> file_line { 'http_header':
   path  => '/etc/nginx/nginx.conf',
   match => 'http {',
-  line  => "    add_header X-Served-By $::hostname_fact;",
-  notify => Exec['restart_nginx'],
+  line  => "http {\n\tadd_header X-Served-By \"${hostname}\";",
 }
-
-# Ensure that the Nginx service is running and enabled
-service { 'nginx':
-  ensure    => 'running',
-  enable    => true,
-  subscribe => File_line['customize_http_header'],
+-> exec {'running':
+  command => '/usr/sbin/service nginx restart',
 }
